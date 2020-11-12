@@ -2,7 +2,7 @@ from tkinter import *
 import tkinter.messagebox as tkMessageBox
 from PIL import Image, ImageTk
 import socket, threading, sys, traceback, os
-
+from time import time 
 from RtpPacket import RtpPacket
 
 CACHE_FILE_NAME = "cache-"
@@ -35,6 +35,11 @@ class Client:
 		self.connectToServer()
 		self.frameNbr = 0
 		
+		
+		self.lossPackage = 0
+		self.playedTime = 0
+		self.recv = 0
+
 	def createWidgets(self):
 		"""Build GUI."""
 		# Create Setup button
@@ -65,11 +70,19 @@ class Client:
 		self.label = Label(self.master, height=19)
 		self.label.grid(row=0, column=0, columnspan=4, sticky=W+E+N+S, padx=5, pady=5) 
 	
+		self.dataRate = Label(self.master,width=20, padx=3, pady=3, font=("Courier",8), borderwidth=2, relief="solid")
+		self.dataRate["text"] = "dataRate(bytes/s):\n 0"
+		self.dataRate.grid(row=1, column=4, padx=2, pady=2)
+
+		self.loss = Label(self.master,width=20, padx=3, pady=3, font=("Courier",8), borderwidth=2, relief="solid")
+		self.loss["text"] = "loss(%):\n 0"
+		self.loss.grid(row=0, column=5, padx=2, pady=2)
+
 	def setupMovie(self):
 		"""Setup button handler."""
 		if self.state == self.INIT:
 			self.sendRtspRequest(self.SETUP)
-	
+			self.action = self.SETUP
 	def exitClient(self):
 		"""Teardown button handler."""
 		self.sendRtspRequest(self.TEARDOWN)		
@@ -83,6 +96,9 @@ class Client:
 	
 	def playMovie(self):
 		"""Play button handler."""
+		if self.state == self.INIT:
+			self.sendRtspRequest(self.SETUP)
+			self.action = self.PLAY
 		if self.state == self.READY:
 			# Create a new thread to listen for RTP packets
 			threading.Thread(target=self.listenRtp).start()
@@ -99,10 +115,19 @@ class Client:
 					rtpPacket = RtpPacket()
 					rtpPacket.decode(data)
 					
+					self.recv += len(bytes(rtpPacket.getPayload()))
+					self.playedTime += float(time() - self.curTime)
+					self.curTime = time()
+					self.dataRate["text"] = self.dataRate["text"][:20] + str(round(self.recv / self.playedTime,3))
+				
 					currFrameNbr = rtpPacket.seqNum()
 					print("Current Seq Num: " + str(currFrameNbr))
 										
 					if currFrameNbr > self.frameNbr: # Discard the late packet
+						if currFrameNbr  - self.frameNbr > 1:
+							self.lossPackage +=  currFrameNbr  - self.frameNbr
+							self.loss["text"] = self.loss["text"][0:9] + str(round(self.lossPackage/ self.frameNbr*100,3))
+			
 						self.frameNbr = currFrameNbr
 						self.updateMovie(self.writeFrame(rtpPacket.getPayload()))
 			except:
@@ -256,10 +281,13 @@ class Client:
 						# self.state = ...
 						self.state = self.READY
 						# Open RTP port.
-						self.openRtpPort() 
+						self.openRtpPort()
+						if self.action == self.PLAY:
+							self.playMovie()
 					elif self.requestSent == self.PLAY:
 						# self.state = ...
 						self.state = self.PLAYING
+						self.curTime = time()
 					elif self.requestSent == self.PAUSE:
 						# self.state = ...
 						self.state = self.READY
