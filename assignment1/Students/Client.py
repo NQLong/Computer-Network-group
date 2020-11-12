@@ -72,11 +72,11 @@ class Client:
 	
 		self.dataRate = Label(self.master,width=20, padx=3, pady=3, font=("Courier",8), borderwidth=2, relief="solid")
 		self.dataRate["text"] = "dataRate(bytes/s):\n 0"
-		self.dataRate.grid(row=1, column=4, padx=2, pady=2)
+		self.dataRate.grid(row=2, column=1, padx=2, pady=2)
 
 		self.loss = Label(self.master,width=20, padx=3, pady=3, font=("Courier",8), borderwidth=2, relief="solid")
 		self.loss["text"] = "loss(%):\n 0"
-		self.loss.grid(row=0, column=5, padx=2, pady=2)
+		self.loss.grid(row=2, column=2, padx=2, pady=2)
 
 	def setupMovie(self):
 		"""Setup button handler."""
