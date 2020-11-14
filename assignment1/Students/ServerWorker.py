@@ -10,13 +10,16 @@ class ServerWorker:
 	PAUSE = 'PAUSE'
 	TEARDOWN = 'TEARDOWN'
 	DESCRIBE='DESCRIBE'
+	
 	INIT = 0
 	READY = 1
 	PLAYING = 2
 	state = INIT
+	
 	OK_200 = 0
 	FILE_NOT_FOUND_404 = 1
 	CON_ERR_500 = 2
+	boolDes=False
 	clientInfo = {}
 	RTSPid=-1
 	filename=''
@@ -97,6 +100,7 @@ class ServerWorker:
 		elif requestType == self.DESCRIBE:
 				print("processing DESCRIBE\n")
 				self.replyRtsp(self.OK_200, seq[1])
+				self.boolDes=True
 		# Process TEARDOWN request
 		elif requestType == self.TEARDOWN:
 			print("processing TEARDOWN\n")
@@ -158,7 +162,8 @@ class ServerWorker:
 			+f'a=mimetype:string;\"video/MJPEG\"\n'
 			+f"Encoding type: " + "utf-8\n"
 			)
-			reply=(reply+"Content-Base: " +"rtsp://"+str(self.clientInfo['rtspSocket'][1][0])+"/" +self.filename+'\n'
+			if (self.boolDes):
+				reply=(reply+"Content-Base: " +"rtsp://"+str(self.clientInfo['rtspSocket'][1][0])+"/" +self.filename+'\n'
 			+"Content-Type: " + "application/sdp\n"+"Content-Length:"+str(len(t))+'\n'+t)
 			connSocket = self.clientInfo['rtspSocket'][0]
 			connSocket.send(reply.encode())
