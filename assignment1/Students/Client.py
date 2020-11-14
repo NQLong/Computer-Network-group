@@ -18,7 +18,7 @@ class Client:
 	PLAY = 1
 	PAUSE = 2
 	TEARDOWN = 3
-	
+	DESCRIBE = 4
 	# Initiation..
 	def __init__(self, master, serveraddr, serverport, rtpport, filename):
 		self.master = master
@@ -65,11 +65,20 @@ class Client:
 		self.teardown["text"] = "Teardown"
 		self.teardown["command"] =  self.exitClient
 		self.teardown.grid(row=1, column=3, padx=2, pady=2)
-		
+		# Create Describe button
+		self.describe = Button(self.master, width=20, padx=3, pady=3)
+		self.describe["text"] = "Describe"
+		self.describe["command"] =  self.Describe
+		self.describe.grid(row=1, column=4, padx=2, pady=2)
+
 		# Create a label to display the movie
 		self.label = Label(self.master, height=19)
 		self.label.grid(row=0, column=0, columnspan=4, sticky=W+E+N+S, padx=5, pady=5) 
-	
+		
+		self.describes = Label(self.master,height=19,width=30, padx=6, pady=6, font=("Describe",9), relief="solid")
+		self.describes["text"] = "Describe:\n"
+		self.describes.grid(row=0, column=4, padx=2, pady=2)
+		
 		self.dataRate = Label(self.master,width=20, padx=3, pady=3, font=("Courier",8), borderwidth=2, relief="solid")
 		self.dataRate["text"] = "dataRate(bytes/s):\n 0"
 		self.dataRate.grid(row=2, column=1, padx=2, pady=2)
@@ -77,7 +86,8 @@ class Client:
 		self.loss = Label(self.master,width=20, padx=3, pady=3, font=("Courier",8), borderwidth=2, relief="solid")
 		self.loss["text"] = "loss(%):\n 0"
 		self.loss.grid(row=2, column=2, padx=2, pady=2)
-
+	def Describe(self):
+		self.sendRtspRequest(self.DESCRIBE)
 	def setupMovie(self):
 		"""Setup button handler."""
 		if self.state == self.INIT:
@@ -92,13 +102,12 @@ class Client:
 	def pauseMovie(self):
 		"""Pause button handler."""
 		if self.state == self.PLAYING:
-			self.sendRtspRequest(self.PAUSE)
-	
+			self.sendRtspRequest(self.PAUSE)	
 	def playMovie(self):
 		"""Play button handler."""
-		if self.state == self.INIT:
+		"""if self.state == self.INIT:
 			self.sendRtspRequest(self.SETUP)
-			self.action = self.PLAY
+			self.action = self.PLAY"""
 		if self.state == self.READY:
 			# Create a new thread to listen for RTP packets
 			threading.Thread(target=self.listenRtp).start()
@@ -124,6 +133,7 @@ class Client:
 					print("Current Seq Num: " + str(currFrameNbr))
 										
 					if currFrameNbr > self.frameNbr: # Discard the late packet
+						
 						if currFrameNbr  - self.frameNbr > 1:
 							self.lossPackage +=  currFrameNbr  - self.frameNbr
 							self.loss["text"] = self.loss["text"][0:9] + str(round(self.lossPackage/ self.frameNbr*100,3))
@@ -220,7 +230,20 @@ class Client:
 			
 			# Keep track of the sent request.
 			self.requestSent = requestCode
+		elif requestCode == self.DESCRIBE:
+			pass
+			# Update RTSP sequence number.
+			self.rtspSeq += 1
 			
+			# Write the RTSP request to be sent.
+			request =(
+				f'DESCRIBE {self.fileName} RTSP/1.0\n'
+				+	f'CSeq: {self.rtspSeq}\n'
+				+	f'Session: {self.sessionId}'
+			)
+			
+			# Keep track of the sent request.
+			self.requestSent = requestCode	
 		# Teardown request
 		elif requestCode == self.TEARDOWN and not self.state == self.INIT:
 			# Update RTSP sequence number.
@@ -298,10 +321,15 @@ class Client:
 						self.state = self.INIT
 						# Flag the teardownAcked to close the socket.
 						self.teardownAcked = 1 
-	
+					elif self.requestSent==self.DESCRIBE:
+						strin=""
+						for t in lines[3:]:
+							strin=strin+t+'\n'
+						self.describes["text"]=self.describes["text"][0:10]+strin
+						
 	def openRtpPort(self):
 		"""Open RTP socket binded to a specified port."""
-		#-------------
+		#-------------SS
 		# TO COMPLETE
 		#-------------
 		# Create a new datagram socket to receive RTP packets from the server
