@@ -165,8 +165,10 @@ class ServerWorker:
 			if (self.boolDes):
 				reply=(reply+"Content-Base: " +"rtsp://"+str(self.clientInfo['rtspSocket'][1][0])+"/" +self.filename+'\n'
 			+"Content-Type: " + "application/sdp\n"+"Content-Length:"+str(len(t))+'\n'+t)
+				self.boolDes=False
 			connSocket = self.clientInfo['rtspSocket'][0]
 			connSocket.send(reply.encode())
+
 		
 		# Error messages
 		elif code == self.FILE_NOT_FOUND_404:
