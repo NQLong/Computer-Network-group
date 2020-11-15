@@ -36,9 +36,11 @@ class Client:
 		self.frameNbr = 0
 		
 		
-		self.lossPackage = 0
-		self.playedTime = 0
-		self.recv = 0
+		self.stat = {}
+		self.stat["lossPackage"] = 0
+		self.stat["transmitTime"] = 0
+		self.stat["recv"] = 0
+	
 
 	def createWidgets(self):
 		"""Build GUI."""
@@ -79,13 +81,10 @@ class Client:
 		self.describes["text"] = "Describe:\n"
 		self.describes.grid(row=0, column=4, padx=2, pady=2)
 		
-		self.dataRate = Label(self.master,width=20, padx=3, pady=3, font=("Courier",8), borderwidth=2, relief="solid")
-		self.dataRate["text"] = "dataRate(bytes/s):\n 0"
-		self.dataRate.grid(row=2, column=1, padx=2, pady=2)
+		self.Statistic = Label(self.master, padx=3, pady=3, font=("Courier",8),anchor= W, width = 50,justify=LEFT)
+		self.Statistic["text"] = "Statistic\n"  +"\tAvgDataRate: 0\n"+"\tlossRate(%): 0" 
+		self.Statistic.grid(row=2,column=0,columnspan=3)
 
-		self.loss = Label(self.master,width=20, padx=3, pady=3, font=("Courier",8), borderwidth=2, relief="solid")
-		self.loss["text"] = "loss(%):\n 0"
-		self.loss.grid(row=2, column=2, padx=2, pady=2)
 	def Describe(self):
 		self.sendRtspRequest(self.DESCRIBE)
 	def setupMovie(self):
@@ -104,16 +103,19 @@ class Client:
 		if self.state == self.PLAYING:
 			self.sendRtspRequest(self.PAUSE)	
 	def playMovie(self):
-		"""Play button handler."""
-		"""if self.state == self.INIT:
+		self.action = self.PLAY
+		if self.state == self.INIT:
 			self.sendRtspRequest(self.SETUP)
-			self.action = self.PLAY"""
-		if self.state == self.READY:
+			
+		while True:
 			# Create a new thread to listen for RTP packets
+			if not self.state == self.READY:
+				continue
 			threading.Thread(target=self.listenRtp).start()
 			self.playEvent = threading.Event()
 			self.playEvent.clear()
 			self.sendRtspRequest(self.PLAY)
+			break
 	
 	def listenRtp(self):		
 		"""Listen for RTP packets."""
@@ -124,22 +126,30 @@ class Client:
 					rtpPacket = RtpPacket()
 					rtpPacket.decode(data)
 					
-					self.recv += len(bytes(rtpPacket.getPayload()))
-					self.playedTime += float(time() - self.curTime)
-					self.curTime = time()
-					self.dataRate["text"] = self.dataRate["text"][:20] + str(round(self.recv / self.playedTime,3))
-				
+					self.stat["recv"] += len(bytes(rtpPacket.getPayload()))
+					if self.frameNbr == 0 or (self.stat.get("pause") and self.stat["pause"]):
+						self.stat["beginTransmit"] = rtpPacket.timestamp()
+						self.stat["pause"] = False
+					curTime = int(time()*(10**7)) % 0x100000000
+					self.stat["transmitTime"] += (curTime - self.stat["beginTransmit"]) / (10**7)
+					self.stat["beginTransmit"] = curTime
+
 					currFrameNbr = rtpPacket.seqNum()
 					print("Current Seq Num: " + str(currFrameNbr))
 										
 					if currFrameNbr > self.frameNbr: # Discard the late packet
 						
 						if currFrameNbr  - self.frameNbr > 1:
-							self.lossPackage +=  currFrameNbr  - self.frameNbr
-							self.loss["text"] = self.loss["text"][0:9] + str(round(self.lossPackage/ self.frameNbr*100,3))
-			
+							self.stat["lossPackage"] +=  currFrameNbr  - self.frameNbr -1
+							
 						self.frameNbr = currFrameNbr
 						self.updateMovie(self.writeFrame(rtpPacket.getPayload()))
+					
+					self.Statistic["text"] = ("Statistic :\n"
+											+"\tAvgDataRate: {value}\n".format(value=str(round(self.stat["recv"] / self.stat["transmitTime"],3)))
+											+"\tlossRate(%): {value}".format(value =str(round(self.stat["lossPackage"]/ self.frameNbr*100,3)))
+					)
+
 			except:
 				# Stop listening upon requesting PAUSE or TEARDOWN
 				if self.playEvent.isSet(): 
@@ -305,8 +315,7 @@ class Client:
 						self.state = self.READY
 						# Open RTP port.
 						self.openRtpPort()
-						if self.action == self.PLAY:
-							self.playMovie()
+						
 					elif self.requestSent == self.PLAY:
 						# self.state = ...
 						self.state = self.PLAYING
@@ -314,6 +323,7 @@ class Client:
 					elif self.requestSent == self.PAUSE:
 						# self.state = ...
 						self.state = self.READY
+						self.stat["pause"] = True
 						# The play thread exits. A new thread is created on resume.
 						self.playEvent.set()
 					elif self.requestSent == self.TEARDOWN:

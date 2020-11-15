@@ -10,7 +10,7 @@ class RtpPacket:
 		
 	def encode(self, version, padding, extension, cc, seqnum, marker, pt, ssrc, payload):
 		"""Encode the RTP packet with header fields and payload."""
-		timestamp = int(time())
+		timestamp = int(time()*(10**7)) % 0x100000000
 		header = bytearray(HEADER_SIZE)
 		#--------------
 		# TO COMPLETE
