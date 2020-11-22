@@ -43,6 +43,7 @@ class ServerWorker:
 			if data:
 				print("Data received:\n" + data.decode("utf-8"))
 				self.processRtspRequest(data.decode("utf-8"))
+			
 	
 	def processRtspRequest(self, data):
 		"""Process RTSP request sent from the client."""
@@ -97,10 +98,12 @@ class ServerWorker:
 				self.state = self.READY
 				self.clientInfo['event'].set()
 				self.replyRtsp(self.OK_200, seq[1])
+
 		elif requestType == self.DESCRIBE:
 				print("processing DESCRIBE\n")
 				self.replyRtsp(self.OK_200, seq[1])
 				self.boolDes=True
+
 		# Process TEARDOWN request
 		elif requestType == self.TEARDOWN:
 			print("processing TEARDOWN\n")
@@ -109,8 +112,10 @@ class ServerWorker:
 			# Close the RTP socket
 			ServerWorker.video_curr-=1
 			self.clientInfo['rtpSocket'].close()
+	
 	def sendDecribe(self):
 		self.clientInfo['numberone']=1
+	
 	def sendRtp(self):
 		"""Send RTP packets over UDP."""
 		while True:
@@ -168,6 +173,7 @@ class ServerWorker:
 				self.boolDes=False
 			connSocket = self.clientInfo['rtspSocket'][0]
 			connSocket.send(reply.encode())
+			print(reply)
 
 		
 		# Error messages

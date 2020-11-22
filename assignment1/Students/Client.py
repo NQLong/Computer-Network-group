@@ -40,7 +40,7 @@ class Client:
 		self.stat["lossPackage"] = 0
 		self.stat["transmitTime"] = 0
 		self.stat["recv"] = 0
-	
+		self.actionPlay = False
 
 	def createWidgets(self):
 		"""Build GUI."""
@@ -87,11 +87,13 @@ class Client:
 
 	def Describe(self):
 		self.sendRtspRequest(self.DESCRIBE)
+
 	def setupMovie(self):
 		"""Setup button handler."""
 		if self.state == self.INIT:
 			self.sendRtspRequest(self.SETUP)
 			self.action = self.SETUP
+
 	def exitClient(self):
 		"""Teardown button handler."""
 		self.sendRtspRequest(self.TEARDOWN)		
@@ -102,20 +104,18 @@ class Client:
 		"""Pause button handler."""
 		if self.state == self.PLAYING:
 			self.sendRtspRequest(self.PAUSE)	
+
 	def playMovie(self):
-		self.action = self.PLAY
 		if self.state == self.INIT:
 			self.sendRtspRequest(self.SETUP)
-			
-		while True:
+			self.actionPlay = True
+		elif self.state == self.READY:
 			# Create a new thread to listen for RTP packets
-			if not self.state == self.READY:
-				continue
 			threading.Thread(target=self.listenRtp).start()
 			self.playEvent = threading.Event()
 			self.playEvent.clear()
 			self.sendRtspRequest(self.PLAY)
-			break
+			
 	
 	def listenRtp(self):		
 		"""Listen for RTP packets."""
@@ -276,7 +276,6 @@ class Client:
 		
 		print('\nData sent:\n' + request)
 
-
 	def recvRtspReply(self):
 		"""Receive RTSP reply from the server."""
 		while True:
@@ -295,7 +294,6 @@ class Client:
 		"""Parse the RTSP reply from the server."""
 		lines = data.split('\n')
 		seqNum = int(lines[1].split(' ')[1])
-		
 		# Process only if the server reply's sequence number is the same as the request's
 		if seqNum == self.rtspSeq:
 			session = int(lines[2].split(' ')[1])
@@ -315,6 +313,9 @@ class Client:
 						self.state = self.READY
 						# Open RTP port.
 						self.openRtpPort()
+						if self.actionPlay == True:
+							self.actionPlay = False
+							self.playMovie()
 						
 					elif self.requestSent == self.PLAY:
 						# self.state = ...
