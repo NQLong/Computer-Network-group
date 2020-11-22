@@ -1,36 +1,20 @@
-class StaticCheck(Visitor):
+# import threading
+# import time
+# threads = []
+# def countdown(*num):
+#     print(num)
+#     for i in range(*num):
+#         time.sleep(1)
 
-    def visitProgram(self,ctx:Program,o:object):
-        global lst
-        lst = []
-        for ele in ctx.decl:
-            self.visit()
-            isinstance
-    def visitVarDecl(self,ctx:VarDecl,o:object):
-        glo
-    def visitConstDecl(self,ctx:ConstDecl,o:object):pass
-        return ctx.name
-    def visitIntType(self,ctx:IntType,o:object):
-        pass
+# for i in range(15,5,-3):
+#     threads += [threading.Thread(target = countdown,args=[i])]
+#     threads[-1].start()
+    
 
-    def visitFloatType(self,ctx:FloatType,o:object):pass
+# for i in threads:
 
-    def visitIntLit(self,ctx:IntLit,o:object):pass
-
-# class Program: #decl:List[Decl]
-
-# class Decl(ABC): #abstract class
-
-# class VarDecl(Decl): #name:str,typ:Type
-
-# class ConstDecl(Decl): #name:str,val:Lit
-
-# class Type(ABC): #abstract class
-
-# class IntType(Type)
-
-# class FloatType(Type)
-
-# class Lit(ABC): #abstract class
-
-# class IntLit(Lit): #val:int
+#     i.join()
+#     print(i)
+    
+a = {1:12}
+print(a.get(1))

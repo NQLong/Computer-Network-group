@@ -1,6 +1,6 @@
 from random import randint
 import sys, traceback, threading, socket
-
+import time
 from VideoStream import VideoStream
 from RtpPacket import RtpPacket
 
@@ -63,7 +63,7 @@ class ServerWorker:
 			if self.state == self.INIT:
 				# Update state
 				print("processing SETUP\n")
-				
+				self.clientInfo['session'] = randint(100000, 999999)
 				try:
 					self.clientInfo['videoStream'] = VideoStream(filename)
 					self.state = self.READY
@@ -71,7 +71,7 @@ class ServerWorker:
 					self.replyRtsp(self.FILE_NOT_FOUND_404, seq[1])
 				
 				# Generate a randomized RTSP session ID
-				self.clientInfo['session'] = randint(100000, 999999)
+				
 				
 				# Send RTSP reply
 				self.replyRtsp(self.OK_200, seq[1])
@@ -93,6 +93,7 @@ class ServerWorker:
 		
 		# Process PAUSE request
 		elif requestType == self.PAUSE:
+		
 			if self.state == self.PLAYING:
 				print("processing PAUSE\n")
 				self.state = self.READY
@@ -101,8 +102,8 @@ class ServerWorker:
 
 		elif requestType == self.DESCRIBE:
 				print("processing DESCRIBE\n")
-				self.replyRtsp(self.OK_200, seq[1])
 				self.boolDes=True
+				self.replyRtsp(self.OK_200, seq[1])
 
 		# Process TEARDOWN request
 		elif requestType == self.TEARDOWN:
@@ -178,6 +179,9 @@ class ServerWorker:
 		
 		# Error messages
 		elif code == self.FILE_NOT_FOUND_404:
-			print("404 NOT FOUND")
+			reply =(f'RTSP/1.0 404 File-not-found\nCSeq: ' + seq + '\nSession: ' + str(self.clientInfo['session']))
+			connSocket = self.clientInfo['rtspSocket'][0]
+			connSocket.send(reply.encode())
+		
 		elif code == self.CON_ERR_500:
 			print("500 CONNECTION ERROR")
