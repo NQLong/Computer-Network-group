@@ -99,8 +99,8 @@ class ServerWorker:
 				self.replyRtsp(self.OK_200, seq[1])
 		elif requestType == self.DESCRIBE:
 				print("processing DESCRIBE\n")
-				self.replyRtsp(self.OK_200, seq[1])
 				self.boolDes=True
+				self.replyRtsp(self.OK_200, seq[1])
 		# Process TEARDOWN request
 		elif requestType == self.TEARDOWN:
 			print("processing TEARDOWN\n")
