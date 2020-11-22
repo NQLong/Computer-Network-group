@@ -313,7 +313,7 @@ class Client:
 			if self.requestSent == self.TEARDOWN :
 				self.rtspSocket.shutdown(socket.SHUT_RDWR)
 				self.rtspSocket.close()
-				print("hello")
+				
 				break
 	
 	def parseRtspReply(self, data):
